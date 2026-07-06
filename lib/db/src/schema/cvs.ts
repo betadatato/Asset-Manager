@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, timestamp, integer, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -68,6 +68,20 @@ export type InsertEducation = z.infer<typeof insertEducationSchema>;
 export type Education = typeof educationsTable.$inferSelect;
 
 // ─── Languages ───────────────────────────────────────────────────────────────
+
+export const attachmentsTable = pgTable("attachments", {
+  id: serial("id").primaryKey(),
+  cvId: integer("cv_id")
+    .notNull()
+    .references(() => cvsTable.id, { onDelete: "cascade" }),
+  filename: varchar("filename", { length: 255 }).notNull(),
+  originalName: varchar("original_name", { length: 500 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  fileSize: integer("file_size").notNull(),
+  label: varchar("label", { length: 255 }),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 export const languagesTable = pgTable("languages", {
   id: serial("id").primaryKey(),

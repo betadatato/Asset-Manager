@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ExperienceForm } from "@/components/forms/ExperienceForm";
 import { EducationForm } from "@/components/forms/EducationForm";
 import { LanguageForm } from "@/components/forms/LanguageForm";
+import { AttachmentsForm } from "@/components/forms/AttachmentsForm";
 
 export default function Editor() {
   const params = useParams();
@@ -215,12 +216,13 @@ export default function Editor() {
 
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
             <Tabs defaultValue="personal" className="w-full">
-              <TabsList className="grid grid-cols-3 mb-4 h-auto p-1 sticky top-0 z-20 backdrop-blur bg-muted/80">
+              <TabsList className="grid grid-cols-4 mb-4 h-auto p-1 sticky top-0 z-20 backdrop-blur bg-muted/80">
                 <TabsTrigger value="personal" className="py-2">Personal</TabsTrigger>
                 <TabsTrigger value="experience" className="py-2">Experience</TabsTrigger>
                 <TabsTrigger value="education" className="py-2">Education</TabsTrigger>
                 <TabsTrigger value="skills" className="py-2">Skills</TabsTrigger>
                 <TabsTrigger value="languages" className="py-2">Languages</TabsTrigger>
+                <TabsTrigger value="attachments" className="py-2">Attachments</TabsTrigger>
                 <TabsTrigger value="theme" className="py-2">Theme</TabsTrigger>
               </TabsList>
 
@@ -401,6 +403,10 @@ export default function Editor() {
 
                 <TabsContent value="languages" className="mt-0">
                   <LanguageForm cvId={id} languages={cv.languages} />
+                </TabsContent>
+
+                <TabsContent value="attachments" className="mt-0">
+                  <AttachmentsForm cvId={id} />
                 </TabsContent>
 
                 <TabsContent value="theme" className="space-y-6 mt-0">
