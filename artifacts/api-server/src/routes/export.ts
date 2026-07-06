@@ -1,11 +1,14 @@
+import fs from "fs";
+import path from "path";
 import { Router, type IRouter } from "express";
 import { eq, asc } from "drizzle-orm";
-import { db, cvsTable, experiencesTable, educationsTable, languagesTable } from "@workspace/db";
+import { db, cvsTable, experiencesTable, educationsTable, languagesTable, attachmentsTable } from "@workspace/db";
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel,
   AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType,
-  ShadingType,
+  ShadingType, ImageRun,
 } from "docx";
+import { imageSize } from "image-size";
 
 const router: IRouter = Router();
 
@@ -20,16 +23,42 @@ function esc(str: string | null | undefined): string {
     .replace(/'/g, "&#39;");
 }
 
-// Helper: load full CV
+// Helper: load full CV (including attachments)
 async function loadFullCv(id: number) {
   const [cv] = await db.select().from(cvsTable).where(eq(cvsTable.id, id));
   if (!cv) return null;
-  const [experiences, educations, languages] = await Promise.all([
+  const [experiences, educations, languages, attachments] = await Promise.all([
     db.select().from(experiencesTable).where(eq(experiencesTable.cvId, id)).orderBy(asc(experiencesTable.sortOrder)),
     db.select().from(educationsTable).where(eq(educationsTable.cvId, id)).orderBy(asc(educationsTable.sortOrder)),
     db.select().from(languagesTable).where(eq(languagesTable.cvId, id)).orderBy(asc(languagesTable.sortOrder)),
+    db.select().from(attachmentsTable).where(eq(attachmentsTable.cvId, id)).orderBy(asc(attachmentsTable.sortOrder), asc(attachmentsTable.createdAt)),
   ]);
-  return { ...cv, experiences, educations, languages };
+  return { ...cv, experiences, educations, languages, attachments };
+}
+
+// Attachment upload directory (must match attachments route)
+const attachUploadDir = path.join(process.cwd(), "uploads", "attachments");
+
+// Helper: get image dimensions, capped to maxWidth while preserving aspect ratio
+function scaledDimensions(buf: Buffer, maxWidth: number): { width: number; height: number } {
+  try {
+    const info = imageSize(new Uint8Array(buf));
+    const w = info.width ?? maxWidth;
+    const h = info.height ?? maxWidth;
+    if (w <= maxWidth) return { width: w, height: h };
+    return { width: maxWidth, height: Math.round((h / w) * maxWidth) };
+  } catch {
+    return { width: maxWidth, height: Math.round(maxWidth * 1.414) }; // A4 ratio fallback
+  }
+}
+
+// Map mime type to a docx-supported image type (jpg/png/gif/bmp only)
+function docxImgType(mimeType: string): "jpg" | "png" | "gif" | "bmp" | null {
+  if (mimeType === "image/jpeg") return "jpg";
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "image/gif") return "gif";
+  if (mimeType === "image/bmp") return "bmp";
+  return null; // webp/tiff/etc not supported — will fall back to text listing
 }
 
 // Helper: format date string MM/YYYY
@@ -171,10 +200,24 @@ router.get("/cvs/:id/export/pdf", async (req, res): Promise<void> => {
   .lang-table thead th { background: ${safeColor}20; color: ${safeColor}; font-weight: bold; font-size: 7.5pt; }
   .lang-table tbody td:first-child { text-align: left; }
   .skills-text { font-size: 8pt; line-height: 1.5; }
+  .attachments-section { padding: 10mm; }
+  .attachments-title {
+    font-size: 13pt; font-weight: bold; text-transform: uppercase;
+    color: ${safeColor}; letter-spacing: 0.5px;
+    border-bottom: 2px solid ${safeColor}; padding-bottom: 4px; margin-bottom: 12px;
+  }
+  .attachment-page { page-break-before: always; padding-top: 8mm; }
+  .attachment-label { font-size: 11pt; font-weight: bold; color: ${safeColor}; margin-bottom: 6mm; }
+  .attachment-img { max-width: 100%; max-height: 240mm; display: block; border: 1px solid #ddd; }
+  .attachment-pdf-note {
+    font-size: 10pt; color: #444; border: 1px dashed #aaa;
+    border-radius: 6px; padding: 12px 16px; background: #f9f9f9; line-height: 1.7;
+  }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .page { page-break-inside: avoid; }
     .entry { page-break-inside: avoid; }
+    .attachment-page { page-break-before: always; }
   }
 </style>
 <script>window.onload = function(){ window.print(); }</script>
@@ -240,6 +283,29 @@ router.get("/cvs/:id/export/pdf", async (req, res): Promise<void> => {
     </div>` : ""}
   </div>
 </div>
+${cv.attachments.length ? `
+<div class="attachments-section">
+  <div class="attachments-title">Supporting Documents</div>
+  ${cv.attachments.map((a: typeof cv.attachments[0]) => {
+    const isImage = a.mimeType.startsWith("image/");
+    const fileUrl = `/api/uploads/attachments/${esc(a.filename)}`;
+    const label = esc(a.label || a.originalName);
+    if (isImage) {
+      return `<div class="attachment-page">
+        <div class="attachment-label">${label}</div>
+        <img src="${fileUrl}" alt="${label}" class="attachment-img" />
+      </div>`;
+    } else {
+      return `<div class="attachment-page">
+        <div class="attachment-label">${label}</div>
+        <div class="attachment-pdf-note">
+          📄 This document is included as a separate PDF attachment:<br/>
+          <strong>${esc(a.originalName)}</strong>
+        </div>
+      </div>`;
+    }
+  }).join("")}
+</div>` : ""}
 </body>
 </html>`;
 
@@ -397,6 +463,59 @@ router.get("/cvs/:id/export/word", async (req, res): Promise<void> => {
   if (cv.hobbies) {
     children.push(sectionHeading("Interests and Hobbies"));
     children.push(new Paragraph({ text: cv.hobbies, run: { size: 18, font: "Arial" } }));
+  }
+
+  // Attachments
+  if (cv.attachments.length) {
+    children.push(sectionHeading("Supporting Documents"));
+    for (const att of cv.attachments) {
+      const label = att.label || att.originalName;
+      const isImage = att.mimeType.startsWith("image/");
+      const filePath = path.join(attachUploadDir, att.filename);
+
+      const docxType = docxImgType(att.mimeType);
+      if (isImage && docxType && fs.existsSync(filePath)) {
+        try {
+          const data = fs.readFileSync(filePath);
+          const { width, height } = scaledDimensions(data, 500);
+          children.push(
+            new Paragraph({
+              children: [new TextRun({ text: label, bold: true, size: 20, font: "Arial", color })],
+              spacing: { before: 200, after: 80 },
+            }),
+            new Paragraph({
+              children: [new ImageRun({ data, transformation: { width, height }, type: docxType })],
+              spacing: { after: 160 },
+            })
+          );
+        } catch {
+          // If image can't be embedded, fall through to text listing
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: "📎 ", size: 18, font: "Arial" }),
+                new TextRun({ text: label, size: 18, font: "Arial" }),
+              ],
+              spacing: { before: 60, after: 40 },
+            })
+          );
+        }
+      } else {
+        // PDF or missing file — list by name
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: "📎 ", size: 18, font: "Arial" }),
+              new TextRun({ text: label, bold: true, size: 18, font: "Arial" }),
+              ...(att.mimeType === "application/pdf"
+                ? [new TextRun({ text: "  (PDF – see attached file)", size: 16, font: "Arial", color: "888888", italics: true })]
+                : []),
+            ],
+            spacing: { before: 60, after: 40 },
+          })
+        );
+      }
+    }
   }
 
   const doc = new Document({
