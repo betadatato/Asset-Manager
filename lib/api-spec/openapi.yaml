@@ -3,20 +3,30 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Europass CV Builder API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: cvs
+    description: CV management
+  - name: experiences
+    description: Work experience entries
+  - name: educations
+    description: Education entries
+  - name: languages
+    description: Language skills
+  - name: export
+    description: Export operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +34,378 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /cvs:
+    get:
+      operationId: listCvs
+      tags: [cvs]
+      summary: List all CVs
+      responses:
+        "200":
+          description: List of CVs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CvSummary"
+    post:
+      operationId: createCv
+      tags: [cvs]
+      summary: Create a new CV
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CvInput"
+      responses:
+        "201":
+          description: Created CV
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cv"
+
+  /cvs/{id}:
+    get:
+      operationId: getCv
+      tags: [cvs]
+      summary: Get a CV with all related data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: CV detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cv"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateCv
+      tags: [cvs]
+      summary: Update a CV
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CvInput"
+      responses:
+        "200":
+          description: Updated CV
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cv"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteCv
+      tags: [cvs]
+      summary: Delete a CV
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /cvs/{id}/experiences:
+    post:
+      operationId: createExperience
+      tags: [experiences]
+      summary: Add work experience to a CV
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExperienceInput"
+      responses:
+        "201":
+          description: Created experience
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Experience"
+
+  /cvs/{id}/experiences/{expId}:
+    put:
+      operationId: updateExperience
+      tags: [experiences]
+      summary: Update a work experience entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: expId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExperienceInput"
+      responses:
+        "200":
+          description: Updated experience
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Experience"
+    delete:
+      operationId: deleteExperience
+      tags: [experiences]
+      summary: Delete a work experience entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: expId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /cvs/{id}/educations:
+    post:
+      operationId: createEducation
+      tags: [educations]
+      summary: Add education entry to a CV
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EducationInput"
+      responses:
+        "201":
+          description: Created education
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Education"
+
+  /cvs/{id}/educations/{eduId}:
+    put:
+      operationId: updateEducation
+      tags: [educations]
+      summary: Update an education entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: eduId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EducationInput"
+      responses:
+        "200":
+          description: Updated education
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Education"
+    delete:
+      operationId: deleteEducation
+      tags: [educations]
+      summary: Delete an education entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: eduId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /cvs/{id}/languages:
+    post:
+      operationId: createLanguage
+      tags: [languages]
+      summary: Add a language to a CV
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LanguageInput"
+      responses:
+        "201":
+          description: Created language
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Language"
+
+  /cvs/{id}/languages/{langId}:
+    put:
+      operationId: updateLanguage
+      tags: [languages]
+      summary: Update a language entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: langId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LanguageInput"
+      responses:
+        "200":
+          description: Updated language
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Language"
+    delete:
+      operationId: deleteLanguage
+      tags: [languages]
+      summary: Delete a language entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: langId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /cvs/{id}/export/pdf:
+    get:
+      operationId: exportCvPdf
+      tags: [export]
+      summary: Export CV as PDF
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /cvs/{id}/export/word:
+    get:
+      operationId: exportCvWord
+      tags: [export]
+      summary: Export CV as Word document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Word file
+          content:
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +416,295 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    CvSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        fullName:
+          type: string
+        email:
+          type: ["string", "null"]
+        mainColor:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - fullName
+        - mainColor
+        - createdAt
+        - updatedAt
+
+    Cv:
+      type: object
+      properties:
+        id:
+          type: integer
+        fullName:
+          type: string
+        dateOfBirth:
+          type: ["string", "null"]
+        nationality:
+          type: ["string", "null"]
+        gender:
+          type: ["string", "null"]
+        idNumber:
+          type: ["string", "null"]
+        passportNumber:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        linkedin:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        digitalSkills:
+          type: ["string", "null"]
+        hobbies:
+          type: ["string", "null"]
+        drivingLicense:
+          type: ["string", "null"]
+        photoUrl:
+          type: ["string", "null"]
+        mainColor:
+          type: string
+        useGraphics:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        experiences:
+          type: array
+          items:
+            $ref: "#/components/schemas/Experience"
+        educations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Education"
+        languages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Language"
+      required:
+        - id
+        - fullName
+        - mainColor
+        - useGraphics
+        - createdAt
+        - updatedAt
+        - experiences
+        - educations
+        - languages
+
+    CvInput:
+      type: object
+      properties:
+        fullName:
+          type: string
+          minLength: 1
+        dateOfBirth:
+          type: ["string", "null"]
+        nationality:
+          type: ["string", "null"]
+        gender:
+          type: ["string", "null"]
+        idNumber:
+          type: ["string", "null"]
+        passportNumber:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        linkedin:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        digitalSkills:
+          type: ["string", "null"]
+        hobbies:
+          type: ["string", "null"]
+        drivingLicense:
+          type: ["string", "null"]
+        mainColor:
+          type: string
+        useGraphics:
+          type: boolean
+      required:
+        - fullName
+
+    Experience:
+      type: object
+      properties:
+        id:
+          type: integer
+        cvId:
+          type: integer
+        jobTitle:
+          type: string
+        employer:
+          type: string
+        city:
+          type: ["string", "null"]
+        startDate:
+          type: string
+        endDate:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+      required:
+        - id
+        - cvId
+        - jobTitle
+        - employer
+        - startDate
+        - sortOrder
+
+    ExperienceInput:
+      type: object
+      properties:
+        jobTitle:
+          type: string
+          minLength: 1
+        employer:
+          type: string
+          minLength: 1
+        city:
+          type: ["string", "null"]
+        startDate:
+          type: string
+        endDate:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+      required:
+        - jobTitle
+        - employer
+        - startDate
+
+    Education:
+      type: object
+      properties:
+        id:
+          type: integer
+        cvId:
+          type: integer
+        degree:
+          type: string
+        institution:
+          type: string
+        city:
+          type: ["string", "null"]
+        startDate:
+          type: string
+        endDate:
+          type: ["string", "null"]
+        grade:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+      required:
+        - id
+        - cvId
+        - degree
+        - institution
+        - startDate
+        - sortOrder
+
+    EducationInput:
+      type: object
+      properties:
+        degree:
+          type: string
+          minLength: 1
+        institution:
+          type: string
+          minLength: 1
+        city:
+          type: ["string", "null"]
+        startDate:
+          type: string
+        endDate:
+          type: ["string", "null"]
+        grade:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+      required:
+        - degree
+        - institution
+        - startDate
+
+    Language:
+      type: object
+      properties:
+        id:
+          type: integer
+        cvId:
+          type: integer
+        languageName:
+          type: string
+        listening:
+          type: ["string", "null"]
+        reading:
+          type: ["string", "null"]
+        spokenInteraction:
+          type: ["string", "null"]
+        spokenProduction:
+          type: ["string", "null"]
+        writing:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+      required:
+        - id
+        - cvId
+        - languageName
+        - sortOrder
+
+    LanguageInput:
+      type: object
+      properties:
+        languageName:
+          type: string
+          minLength: 1
+        listening:
+          type: ["string", "null"]
+        reading:
+          type: ["string", "null"]
+        spokenInteraction:
+          type: ["string", "null"]
+        spokenProduction:
+          type: ["string", "null"]
+        writing:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+      required:
+        - languageName

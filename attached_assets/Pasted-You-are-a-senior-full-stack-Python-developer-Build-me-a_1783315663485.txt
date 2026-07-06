@@ -1,0 +1,64 @@
+You are a senior full-stack Python developer. Build me a "Europass CV Builder" web app with the following specs:
+
+**GOAL**: Admin panel to input CV data + live preview + export to PDF/Word with customizable colors and graphics, following Europass EU format.
+
+**TECH STACK**:
+1. Backend: Python Flask
+2. Frontend: HTML5, CSS3, TailwindCSS, Jinja2 templates, vanilla JS
+3. PDF: WeasyPrint for A4 PDF export from HTML
+4. Word: python-docx for .docx export
+5. Database: SQLite with SQLAlchemy ORM
+6. Image handling: Pillow for photo upload, resize to 35x45mm, 300dpi
+
+**FEATURES**:
+1. **Admin Panel /form** with sections:
+   - Personal: photo upload, full name, date of birth, nationality, gender, ID number, passport number, address, phone, email, LinkedIn
+   - About me: short professional summary
+   - Work Experience: add/remove multiple entries with job title, employer, city, start/end date, description bullets
+   - Education: add/remove multiple entries with degree, institution, city, start/end date, grade
+   - Skills: digital skills, languages with CEFR levels A1-C2, driving license
+   - Hobbies/Interests: comma separated
+   - Customization: color picker for "main color" hex code, toggle for graphics/decorative line on left sidebar
+   - Save/Load CV drafts
+
+2. **Europass Template /preview**:
+   - Follow official Europass 2-page A4 layout: left sidebar 30% width for photo, contact, skills, languages. Right 70% for summary, experience, education.
+   - Use CSS variables --main-color for user selected color. Apply to headings, sidebar background, progress bars.
+   - Add optional decorative SVG graphic at top if user toggles "graphics".
+   - Photo must be circular crop, 35x45mm ratio.
+   - Dates format: DD/MM/YYYY to MM/YYYY
+   - All text must be responsive and avoid page breaks mid-section.
+
+3. **Export**:
+   - Button "Download PDF": use WeasyPrint to render the Jinja2 HTML template to A4 PDF. Ensure fonts embed, colors exact.
+   - Button "Download Word": use python-docx to create .docx with same structure, headings styled with main color.
+   - Filename: Europass_CV_FullName_YYYY.pdf
+
+4. **Database Schema**:
+   CV(id, full_name, dob, nationality, gender, id_number, passport_number, address, phone, email, photo_path, summary, main_color, use_graphics, created_at)
+   Experience(id, cv_id, job_title, employer, city, start_date, end_date, description)
+   Education(id, cv_id, degree, institution, city, start_date, end_date, grade)
+   Language(id, cv_id, language_name, listening, reading, speaking, writing)
+
+5. **UI/UX**:
+   - Split screen: left = form inputs, right = live preview iframe that updates on change using JS
+   - Color picker input type="color"
+   - Add/Remove buttons for experience/education using JS DOM
+   - Validate required fields: name, email, at least 1 experience
+
+6. **File structure**:
+   /app.py
+   /templates/admin.html
+   /templates/europass_template.html
+   /static/css/style.css
+   /static/js/preview.js
+   /uploads/photos/
+   /models.py
+
+7. **Code quality**:
+   - Comment code clearly
+   - Handle errors for missing photo, invalid dates
+   - Make PDF pagination clean, no content cut
+   - Include requirements.txt with Flask, WeasyPrint, python-docx, Pillow, SQLAlchemy
+
+DELIVER: Full working Flask app code for all files above. Make the europass_template.html match EU visual style as close as possible. Use system fonts Arial/Calibri to avoid licensing issues.

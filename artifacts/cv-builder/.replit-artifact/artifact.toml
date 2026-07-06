@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Europass CV Builder"
+version = "1.0.0"
+id = "artifacts/cv-builder"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22723
+
+[services.development]
+run = "pnpm --filter @workspace/cv-builder run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/cv-builder", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/cv-builder/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22723"
+BASE_PATH = "/"
